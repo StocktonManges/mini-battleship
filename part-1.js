@@ -7,14 +7,6 @@ var cg = require('console-grid');
 // rs.prompt('The user inputs whatever they want.');
 
 
-/***************************** TO DOS *****************************/
-// Choose the size of the board.
-// Place two ships on the board.
-// Player starts guessing locations.
-// Player is prompted to quit or play again.
-/******************************************************************/
-
-
 // rs.question('Press enter to begin... ');
 
 
@@ -27,9 +19,11 @@ const columns = [{
   "name": ""
 }];
 
-const ships = {};
+const ships = new Map();
 const allShipCoordinates = [];
 const shipCount = 2;
+
+const guesses = [];
 
 
 function buildGrid(gridSize = 3) {
@@ -73,7 +67,7 @@ function buildGrid(gridSize = 3) {
 
 function addShips(shipCount = 2) {
   for (let i = 0; i < shipCount; i++) {
-    ships[`ship${i + 1}`] = '';
+    ships.set(`ship${i + 1}`, '');
   }
 }
 
@@ -84,13 +78,13 @@ function pickCoordinates(gridSize = 3) {
 }
 
 function placeShips() {
-  for (let i = 0; i < shipCount; i++) {
+  for (let [ship, location] of ships) {
     let coordinates = pickCoordinates(gridSize);
     while (allShipCoordinates.includes(coordinates)) {
       coordinates = pickCoordinates();
     }
-    ships[`ship${i + 1}`] = coordinates;
-    allShipCoordinates.push(coordinates);    
+    ships.set(ship, coordinates);
+    allShipCoordinates.push(coordinates);
   }
 }
 /******************************************************************/
@@ -103,11 +97,13 @@ function placeShips() {
 /******************************************************************/
 
 addShips(shipCount);
-buildGrid(gridSize);
+// buildGrid(gridSize);
 placeShips();
+console.log(ships);
+console.log(allShipCoordinates);
 
 // Generate the grid in the console.
 // cg({
 //   "columns": columns,
 //   "rows": rows,
-// });  
+// });
