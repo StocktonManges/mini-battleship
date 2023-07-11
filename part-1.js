@@ -15,25 +15,33 @@ var cg = require('console-grid');
 /******************************************************************/
 
 
-rs.question('Press enter to begin... ');
+// rs.question('Press enter to begin... ');
 
+
+/***************************** GAME SETUP *****************************/
 const columnHeader = ['A','B','C','D','E','F','G','H','I','J'];
+const gridSize = 3;
 const rows = [];
 const columns = [{
   "id": "name",
   "name": ""
 }];
 
-function buildGrid(size = 3) {
-  // Verifies the 'size' is between 3 and 10.
-  if (size > 10) {
-    size = 10;
-  } else if (size < 3) {
-    size = 3;
-  }
+const ships = {};
+const allShipCoordinates = [];
+const shipCount = 2;
 
+
+function buildGrid(gridSize = 3) {
+  // Verifies the 'size' is between 3 and 10.
+  if (gridSize > 10) {
+    gridSize = 10;
+  } else if (gridSize < 3) {
+    gridSize = 3;
+  }
+  
   // Adds columns to the 'columns' list.
-  for (let i = 0; i < size; i++) {
+  for (let i = 0; i < gridSize; i++) {
     columns.push( 
       {
         "id": "value",
@@ -42,31 +50,64 @@ function buildGrid(size = 3) {
       )
     }
     
-  // Adds rows to the 'rows' list while checking for the last row.
-  for (let i = 0; i < size; i++) {
-    if (size - i === 1) {
-      rows.push(
-        {
-          "name": i + 1,
-          "value": ''
+    // Adds rows to the 'rows' list while checking for the last row.
+    for (let i = 0; i < gridSize; i++) {
+      if (gridSize - i === 1) {
+        rows.push(
+          {
+            "name": i + 1,
+            "value": ''
+          }
+          )
+        } else {
+          rows.push(
+            {
+              "name": i + 1,
+              "value": ''
+            },
+            { "innerBorder": true }
+            )
+          }
         }
-      )
-    } else {
-      rows.push(
-        {
-          "name": i + 1,
-          "value": ''
-        },
-        { "innerBorder": true }
-      )
-    }
+}
+
+function addShips(shipCount = 2) {
+  for (let i = 0; i < shipCount; i++) {
+    ships[`ship${i + 1}`] = '';
   }
 }
 
-buildGrid();
+function pickCoordinates(gridSize = 3) {
+  const coordinate1 = Math.floor(Math.random() * gridSize);
+  const coordinate2 = Math.floor(Math.random() * gridSize);
+  return `${columnHeader[coordinate1]}${coordinate2 + 1}`;
+}
+
+function placeShips() {
+  for (let i = 0; i < shipCount; i++) {
+    let coordinates = pickCoordinates(gridSize);
+    while (allShipCoordinates.includes(coordinates)) {
+      coordinates = pickCoordinates();
+    }
+    ships[`ship${i + 1}`] = coordinates;
+    allShipCoordinates.push(coordinates);    
+  }
+}
+/******************************************************************/
+
+
+/***************************** GAME PLAY *****************************/
+// Player picks location.
+// Check if location is correct.
+// If correct, remove ship from object.
+/******************************************************************/
+
+addShips(shipCount);
+buildGrid(gridSize);
+placeShips();
 
 // Generate the grid in the console.
-cg({
-  "columns": columns,
-  "rows": rows,
-});  
+// cg({
+//   "columns": columns,
+//   "rows": rows,
+// });  
