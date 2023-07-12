@@ -7,9 +7,6 @@ var cg = require('console-grid');
 // rs.prompt('The user inputs whatever they want.');
 
 
-rs.question('Press enter to begin... ');
-
-
 /***************************** GAME SETUP *****************************/
 const columnHeader = ['A','B','C','D','E','F','G','H','I','J'];
 const gridSize = 3;
@@ -167,6 +164,7 @@ function endGame() {
 }
 
 function startGame() {
+  rs.question('Press enter to begin... ');
   addShips(shipCount);
   buildGrid(gridSize);
   placeShips();
