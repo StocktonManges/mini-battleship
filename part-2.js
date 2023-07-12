@@ -3,8 +3,12 @@ var cg = require('console-grid');
 
 
 /***************************** GAME SETUP *****************************/
+// Troubleshoot checkVertical and checkHorizontal (is it always returning true because of the 'return true;' statement?).
+// Call pickCoordinates inside placeShips for each ship being placed.
+// Add an array of coordinates for each ship in the 'ships' Map.
+
 const rowHeader = ['A','B','C','D','E','F','G','H','I','J'];
-const gridSize = 10;
+const gridSize = 5;
 let rows = [];
 let columns = [{
   "id": "name",
@@ -13,7 +17,7 @@ let columns = [{
 
 const ships = new Map();
 let allShipCoordinates = [];
-const shipCount = 2;
+const shipCount = 5;
 
 let strikeLocations = [];
 
@@ -76,21 +80,37 @@ function pickCoordinates(size = 5, shipLength) {
   const coordinate1 = Math.floor(Math.random() * size);
   const coordinate2 = Math.floor(Math.random() * size);
   const shipHead = `${(rowHeader[coordinate1])}${coordinate2 + 1}`;
-  for (let i = 0; i < shipLength; i++) {
-    if (Math.floor(Math.random() * 2) === 0) {
-      checkHorizontal(shipHead, shipLength);
-    } else {
-      checkVertical(shipHead, shipLength);
-    }
+  if (Math.floor(Math.random() * 2) === 0) {
+    checkHorizontal(shipHead, shipLength);
+  } else {
+    checkVertical(shipHead, shipLength);
   }
 }
 
 function checkHorizontal(coordinate, shipLength) {
-  
+  for (let i = 0; i < shipLength; i++) {
+    const potCoordinate = `${coordinate[0]}${Number(coordinate[1]) + i}`;
+    if (
+      allShipCoordinates.includes(potCoordinate) 
+      || potCoordinate[1] > gridSize) {
+        return false;
+      }
+  }
+  return true;
 }
 
 function checkVertical(coordinate, shipLength) {
-
+  const letterStart = rowHeader.indexOf(coordinate[0]);
+  for (let i = 0; i < shipLength; i++) {
+    const potCoordinate = `${rowHeader[letterStart + i]}${coordinate[1]}`;
+    console.log(potCoordinate);
+    if (
+      allShipCoordinates.includes(potCoordinate) 
+      || letterStart + i > gridSize) {
+        return false;
+      }
+  }
+  return true;
 }
 
 // Assigns coordinates to each 'ship' key in the 'ships' Map.
@@ -198,4 +218,7 @@ function startGame() {
 
 /******************************************************************/
 
-startGame();
+// startGame();
+
+buildGrid(gridSize);
+console.log(checkVertical('E5', 2));
