@@ -1,11 +1,6 @@
 var rs = require('readline-sync');
 var cg = require('console-grid');
 
-// rs.question('Ask a question and listen for a response.');
-// rs.keyInYN('Ask a yes or no question.');
-// rs.keyInSelect(array, 'Gives a list of options to choose from and returns the index.');
-// rs.prompt('The user inputs whatever they want.');
-
 
 /***************************** GAME SETUP *****************************/
 const columnHeader = ['A','B','C','D','E','F','G','H','I','J'];
@@ -23,16 +18,16 @@ const shipCount = 2;
 let strikeLocations = [];
 
 
-function buildGrid(dimensions = 3) {
+function buildGrid(size = 3) {
   // Verifies the 'size' is between 3 and 10.
-  if (dimensions > 10) {
-    dimensions = 10;
-  } else if (dimensions < 3) {
-    dimensions = 3;
+  if (size > 10) {
+    size = 10;
+  } else if (size < 3) {
+    size = 3;
   }
   
   // Adds columns to the 'columns' list.
-  for (let i = 0; i < dimensions; i++) {
+  for (let i = 0; i < size; i++) {
     columns.push( 
       {
         "id": "value",
@@ -42,8 +37,8 @@ function buildGrid(dimensions = 3) {
     }
     
   // Adds rows to the 'rows' list while checking for the last row.
-  for (let i = 0; i < dimensions; i++) {
-    if (dimensions - i === 1) {
+  for (let i = 0; i < size; i++) {
+    if (size - i === 1) {
       rows.push(
         {
           "name": i + 1,
@@ -68,7 +63,7 @@ function buildGrid(dimensions = 3) {
   });
 }
 
-// Adds key-value pairs to the 'ships' Map.
+// Adds key-value pairs to the 'ships' Map (the value is empty).
 function addShips(amount = 2) {
   for (let i = 0; i < amount; i++) {
     ships.set(`ship${i + 1}`, '');
@@ -76,10 +71,10 @@ function addShips(amount = 2) {
 }
 
 // Generates random coordinates within the grid.
-function pickCoordinates(dimensions = 3) {
-  const coordinate1 = Math.floor(Math.random() * dimensions);
-  const coordinate2 = Math.floor(Math.random() * dimensions);
-  return `${(columnHeader[coordinate1]).toLowerCase()}${coordinate2 + 1}`;
+function pickCoordinates(size = 3) {
+  const coordinate1 = Math.floor(Math.random() * size);
+  const coordinate2 = Math.floor(Math.random() * size);
+  return `${(columnHeader[coordinate1])}${coordinate2 + 1}`;
 }
 
 // Assigns coordinates to each 'ship' key in the 'ships' Map.
@@ -99,7 +94,7 @@ function placeShips() {
 /***************************** GAME PLAY *****************************/
 // Asks the player to guess locations until all ships are deleted from the 'ships' Map.
 function strike() {
-  let strikeLocation = rs.question('Enter a location to strike. ').toLowerCase();
+  let strikeLocation = rs.question('Enter a location to strike. ').toUpperCase();
   if (verifyStrikeLocation(strikeLocation)) {
     // If the picked location matches a coordinate that is assigned to a
     // ship, the ship is deleted from the 'ships' Map.
@@ -132,8 +127,7 @@ function strike() {
 // Split the strike location into an array and check if the letter is in
 // the 'columns' list and if the number is in the 'rows' list.
 function verifyStrikeLocation(str) {
-  newStr = str.toUpperCase();
-  const arr = [...newStr];
+  const arr = [...str];
   let rowCheck = false;
   let columnCheck = false;
   for (let i = 0; i < gridSize; i++) {
