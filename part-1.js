@@ -7,7 +7,7 @@ var cg = require('console-grid');
 // rs.prompt('The user inputs whatever they want.');
 
 
-// rs.question('Press enter to begin... ');
+rs.question('Press enter to begin... ');
 
 
 /***************************** GAME SETUP *****************************/
@@ -64,25 +64,28 @@ function buildGrid(dimensions = 3) {
         }
       }
   
-  // Generate grid in the console.
+  // Generates grid in the console.
   cg({
     "columns": columns,
     "rows": rows,
   });
 }
 
+// Adds key-value pairs to the 'ships' Map.
 function addShips(amount = 2) {
   for (let i = 0; i < amount; i++) {
     ships.set(`ship${i + 1}`, '');
   }
 }
 
+// Generates random coordinates within the grid.
 function pickCoordinates(dimensions = 3) {
   const coordinate1 = Math.floor(Math.random() * dimensions);
   const coordinate2 = Math.floor(Math.random() * dimensions);
   return `${(columnHeader[coordinate1]).toLowerCase()}${coordinate2 + 1}`;
 }
 
+// Assigns coordinates to each 'ship' key in the 'ships' Map.
 function placeShips() {
   for (let [ship, location] of ships) {
     let coordinates = pickCoordinates(gridSize);
@@ -97,12 +100,12 @@ function placeShips() {
 
 
 /***************************** GAME PLAY *****************************/
-// Debugging and safeguards
-// Check the strike input to make sure it's valid (verifyStrikeLocation() returns true or false).
-
+// Asks the player to guess locations until all ships are deleted from the 'ships' Map.
 function strike() {
   let strikeLocation = rs.question('Enter a location to strike. ').toLowerCase();
   if (verifyStrikeLocation(strikeLocation)) {
+    // If the picked location matches a coordinate that is assigned to a
+    // ship, the ship is deleted from the 'ships' Map.
     for (let [ship, location] of ships) {
       if (strikeLocation === location) {
         ships.delete(ship);
