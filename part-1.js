@@ -10,17 +10,17 @@ var cg = require('console-grid');
 /***************************** GAME SETUP *****************************/
 const columnHeader = ['A','B','C','D','E','F','G','H','I','J'];
 const gridSize = 3;
-const rows = [];
-const columns = [{
+let rows = [];
+let columns = [{
   "id": "name",
   "name": ""
 }];
 
 const ships = new Map();
-const allShipCoordinates = [];
+let allShipCoordinates = [];
 const shipCount = 2;
 
-const strikeLocations = [];
+let strikeLocations = [];
 
 
 function buildGrid(dimensions = 3) {
@@ -154,6 +154,7 @@ function verifyStrikeLocation(str) {
 function endGame() {
   const playAgain = rs.keyInYN('You have destroyed all battleships. Would you like to play again?');
   if (playAgain) {
+    reset();
     startGame();
   } else {
     console.log(`
@@ -161,6 +162,19 @@ function endGame() {
                               Thanks for playing!
     `);
   }
+}
+
+function reset() {
+  rows = [];
+  columns = [{
+    "id": "name",
+    "name": ""
+  }];
+
+  ships.clear();
+  allShipCoordinates = [];
+
+  strikeLocations = [];
 }
 
 function startGame() {
