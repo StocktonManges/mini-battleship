@@ -3,7 +3,7 @@ var cg = require('console-grid');
 
 
 /***************************** GAME SETUP *****************************/
-const columnHeader = ['A','B','C','D','E','F','G','H','I','J'];
+const rowHeader = ['A','B','C','D','E','F','G','H','I','J'];
 const gridSize = 10;
 let rows = [];
 let columns = [{
@@ -31,7 +31,7 @@ function buildGrid(size = 5) {
     columns.push( 
       {
         "id": "value",
-        "name": columnHeader[i]
+        "name": `${i + 1}`
       },
       )
     }
@@ -41,14 +41,14 @@ function buildGrid(size = 5) {
     if (size - i === 1) {
       rows.push(
         {
-          "name": i + 1,
+          "name": rowHeader[i],
           "value": ''
         }
         )
       } else {
         rows.push(
           {
-            "name": i + 1,
+            "name": rowHeader[i],
             "value": ''
           },
           { "innerBorder": true }
@@ -75,7 +75,7 @@ function addShips(amount = 2) {
 function pickCoordinates(size = 5, shipLength) {
   const coordinate1 = Math.floor(Math.random() * size);
   const coordinate2 = Math.floor(Math.random() * size);
-  const shipHead = `${(columnHeader[coordinate1])}${coordinate2 + 1}`;
+  const shipHead = `${(rowHeader[coordinate1])}${coordinate2 + 1}`;
   for (let i = 0; i < shipLength; i++) {
     if (Math.floor(Math.random() * 2) === 0) {
       checkHorizontal(shipHead, shipLength);
@@ -147,11 +147,11 @@ function verifyStrikeLocation(str) {
   let rowCheck = false;
   let columnCheck = false;
   for (let i = 0; i < gridSize; i++) {
-    if (arr[0] == columns[`${i + 1}`].name) {
-      columnCheck = true;
-    }
-    if (arr[1] == rows[`${i * 2}`].name) {
+    if (arr[0] == rows[`${i * 2}`].name) {
       rowCheck = true;
+    }
+    if (arr[1] == columns[`${i + 1}`].name) {
+      columnCheck = true;
     }
   }
   if (columnCheck && rowCheck && arr.length === 2) {
