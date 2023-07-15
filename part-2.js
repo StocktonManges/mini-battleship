@@ -126,37 +126,50 @@ function placeShip(size, lengthsArray, coordinatesArray, map) {
   }
 }
 
-
 /******************************************************************/
 
 
 /***************************** GAME PLAY *****************************/
-// Asks the player to guess locations until all ships are deleted from the 'ships' Map.
+
+// Asks the player to guess locations until all ships are deleted from
+// the 'ships' Map.
 function strike() {
-  let strikeLocation = rs.question('Enter a location to strike. ').toUpperCase();
+  let strikeLocation = rs.question(`
+Enter a location to strike. `).toUpperCase();
   if (verifyStrikeLocation(strikeLocation)) {
-    // If the picked location matches a coordinate that is assigned to a
-    // ship, the ship is deleted from the 'ships' Map.
-    for (let [ship, location] of ships) {
-      if (strikeLocation === location) {
-        ships.delete(ship);
-        console.log(`Hit. You have sunk a battleship. Remaining ships: ${ships.size}.`);
-        if (ships.size === 0) {
-          break;
-        } else {
-          strikeLocations.push(strikeLocation);
-          strike();
+    if (strikeLocations.includes(strikeLocation)) {
+      console.log('You have already picked this location. Miss!');
+      strike();
+    } else {
+      let i = 0;
+      for (let [shipNumber, shipArray] of ships) {
+        for (let coordinateIndex in shipArray) {
+          console.log(`compare ${strikeLocation} to ${shipArray[coordinateIndex]}`);
+          if (strikeLocation === shipArray[coordinateIndex]) {
+            shipArray.splice(coordinateIndex, 1);
+            if (shipArray.length === 0) {
+              ships.delete(shipNumber);
+              console.log(`Hit! You have sunk a battleship. Remaining ships: ${ships.size}.`);
+              strikeLocations.push(strikeLocation);
+              console.log(ships);
+              return;
+            } else {
+              console.log(`Hit! Remaining ships: ${ships.size}.`);
+              strikeLocations.push(strikeLocation);
+              console.log(ships);
+              return;
+            }
+          }
         }
-      } else if (strikeLocations.includes(strikeLocation)) {
-        console.log('You have already picked this location. Miss!');
-        strikeLocations.push(strikeLocation);
-        strike();
-      } else {
-        console.log('You have missed!');
-        strikeLocations.push(strikeLocation);
-        strike();
+        i++;
+        if (i === ships.size) {
+          strikeLocations.push(strikeLocation);
+          console.log(ships);
+          console.log(`Miss! Remaining ships: ${ships.size}.`);
+          return;
+        }
       }
-    }
+    }    
   } else {
     console.log('That is not a valid location.');
     strike();
@@ -165,15 +178,16 @@ function strike() {
 
 // Split the 'strikeLocation' into an array, then check the letter and
 // number separately to see if it falls within the established grid.
-function verifyStrikeLocation(str) {
-  let arr = [...str];
+function verifyStrikeLocation(coordinate) {
+  let arr = [...coordinate];
   // Concatenates '1' and '0' if 'strikeLocation' is in column 10.
   if (arr[1] + arr[2] === '10') {
     arr = [arr[0], '10'];
   }
   return (
     activeRowHeader.includes(arr[0]) 
-    && arr[1] <= gridSize 
+    && arr[1] <= gridSize
+    && arr[1] > 0
     && activeRowHeader.indexOf(arr[0]) < gridSize 
     && activeRowHeader.indexOf(arr[0]) >= 0 
     && arr.length === 2
@@ -183,12 +197,11 @@ function verifyStrikeLocation(str) {
 function endGame() {
   const playAgain = rs.keyInYN('You have destroyed all battleships. Would you like to play again?');
   if (playAgain) {
-    reset();
     startGame();
   } else {
     console.log(`
     
-                              Thanks for playing!
+                    Thanks for playing!
     `);
   }
 }
@@ -205,11 +218,13 @@ function reset() {
 }
 
 function startGame() {
+  reset();
   rs.question('Press enter to begin... ');
   buildGrid(gridSize);
   placeShip(gridSize, shipLengths, allShipCoordinates, ships);
-  console.log(allShipCoordinates);
-  strike();
+  while (ships.size > 0) {
+    strike();
+  }
   endGame();
 }
 
