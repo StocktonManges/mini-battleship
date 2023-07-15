@@ -3,12 +3,20 @@ var cg = require('console-grid');
 
 
 /***************************** GAME SETUP *****************************/
-// Troubleshoot checkVertical and checkHorizontal (is it always returning true because of the 'return true;' statement?).
-// Call pickCoordinates inside placeShips for each ship being placed.
-// Add an array of coordinates for each ship in the 'ships' Map.
+// placeShip() calls pickCoordinates.
+//    placeShip() arguments: (shipLength)
 
+// pickCoordinates() returns an array that represents the ship.
+
+// placeShip() calls checkCoordinates() (which is a consolidated
+// checkVertical() and checkHorizontal()) which checks if it fits on
+// grid or is overlapping another ship and returns boolean.
+//    true => placeShip() adds the array to the map and the coordinates to the allShipCoordinates array.
+//    false => call pickCoordinates() again with same information (use a while loop and a variable).
+
+const gridSize = 10;
 const rowHeader = ['A','B','C','D','E','F','G','H','I','J'];
-const gridSize = 5;
+let activeRowHeader = createActiveRowHeaderList(gridSize, rowHeader);
 let rows = [];
 let columns = [{
   "id": "name",
@@ -17,7 +25,7 @@ let columns = [{
 
 const ships = new Map();
 let allShipCoordinates = [];
-const shipCount = 5;
+const shipLengths = [2, 3, 3, 4, 5];
 
 let strikeLocations = [];
 
@@ -67,63 +75,73 @@ function buildGrid(size = 5) {
   });
 }
 
-// Adds key-value pairs to the 'ships' Map (the value is empty).
-function addShips(amount = 2) {
-  for (let i = 0; i < amount; i++) {
-    ships.set(`ship${i + 1}`, '');
-  }
+function createActiveRowHeaderList(size, array) {
+  let activeRowHeader = array.filter((header) => array.indexOf(header) < size);
+  return activeRowHeader;
 }
 
 // Generates random sequences of adjacent coordinates based on the
 // 'shipLength' argument.
 function pickCoordinates(size = 5, shipLength) {
   const coordinate1 = Math.floor(Math.random() * size);
-  const coordinate2 = Math.floor(Math.random() * size);
-  const shipHead = `${(rowHeader[coordinate1])}${coordinate2 + 1}`;
+  const coordinate2 = Math.floor(Math.random() * size) + 1;
+  const shipHead = `${(rowHeader[coordinate1])}${coordinate2}`;
   if (Math.floor(Math.random() * 2) === 0) {
-    checkHorizontal(shipHead, shipLength);
+    let checkH = checkHorizontal(shipHead, shipLength);
+    if (typeof checkH === 'object') {
+      return checkH;
+    } else {
+      checkH = checkHorizontal(shipHead, shipLength);
+    }
   } else {
-    checkVertical(shipHead, shipLength);
+    let checkV = checkVertical(shipHead, shipLength);
+    if (typeof checkV === 'object') {
+      return checkV;
+    } else {
+      checkV = checkVertical(shipHead, shipLength);
+    }
   }
 }
 
-function checkHorizontal(coordinate, shipLength) {
-  for (let i = 0; i < shipLength; i++) {
-    const potCoordinate = `${coordinate[0]}${Number(coordinate[1]) + i}`;
-    if (
-      allShipCoordinates.includes(potCoordinate) 
-      || potCoordinate[1] > gridSize) {
-        return false;
-      }
+function checkHorizontal(coordinate, length) {
+  const arr = [];
+  for (let i = 0; i < length; i++) {
+    let potCoordinate = [coordinate[0], Number(coordinate[1]) + i];
+    if (allShipCoordinates.includes(potCoordinate[0] + potCoordinate[1].toString()) || potCoordinate[1] > gridSize) {
+      return false;
+    } else {
+      arr.push(potCoordinate[0] + potCoordinate[1].toString());
+    }
   }
-  return true;
+  return arr;
 }
 
-function checkVertical(coordinate, shipLength) {
-  const letterStart = rowHeader.indexOf(coordinate[0]);
-  for (let i = 0; i < shipLength; i++) {
-    const potCoordinate = `${rowHeader[letterStart + i]}${coordinate[1]}`;
-    console.log(potCoordinate);
-    if (
-      allShipCoordinates.includes(potCoordinate) 
-      || letterStart + i > gridSize) {
-        return false;
-      }
+function checkVertical(coordinate, length) {
+  const arr = [];
+  const rowStart = rowHeader.indexOf(coordinate[0]);
+  for (let i = 0; i < length; i++) {
+    const potCoordinate = `${rowHeader[rowStart + i]}${coordinate[1]}`;
+    if (allShipCoordinates.includes(potCoordinate) || !activeRowHeader.includes(potCoordinate[0])) {
+      return false;
+    } else {
+      arr.push(potCoordinate);
+    }
   }
-  return true;
+  return arr;
 }
 
 // Assigns coordinates to each 'ship' key in the 'ships' Map.
-function placeShips() {
-  for (let [ship, location] of ships) {
-    let coordinates = pickCoordinates(gridSize);
-    while (allShipCoordinates.includes(coordinates)) {
-      coordinates = pickCoordinates();
-    }
-    ships.set(ship, coordinates);
-    allShipCoordinates.push(coordinates);
-  }
+function placeShip(map, shipNum, size = 5, shipLength) {
+  const shipArray = pickCoordinates(size, shipLength);
+  return shipArray;
+  // // Add the ship to the 'allShipCoordinates' array.
+  // for (let coordinate of shipArray) {
+  //   allShipCoordinates.push(coordinate);
+  // }
+  // map.set(shipNum, shipArray);
 }
+
+
 /******************************************************************/
 
 
@@ -160,25 +178,21 @@ function strike() {
   }
 }
 
-// Split the strike location into an array and check if the letter is in
-// the 'columns' list and if the number is in the 'rows' list.
+// Split the 'strikeLocation' into an array, then check the letter and
+// number separately to see if it falls within the established grid.
 function verifyStrikeLocation(str) {
-  const arr = [...str];
-  let rowCheck = false;
-  let columnCheck = false;
-  for (let i = 0; i < gridSize; i++) {
-    if (arr[0] == rows[`${i * 2}`].name) {
-      rowCheck = true;
-    }
-    if (arr[1] == columns[`${i + 1}`].name) {
-      columnCheck = true;
-    }
+  let arr = [...str];
+  // Concatenates '1' and '0' if 'strikeLocation' is in column 10.
+  if (arr[1] + arr[2] === '10') {
+    arr = [arr[0], '10'];
   }
-  if (columnCheck && rowCheck && arr.length === 2) {
-    return true;
-  } else {
-    return false;
-  }
+  return (
+    activeRowHeader.includes(arr[0]) 
+    && arr[1] <= gridSize 
+    && activeRowHeader.indexOf(arr[0]) < gridSize 
+    && activeRowHeader.indexOf(arr[0]) >= 0 
+    && arr.length === 2
+    );
 }
 
 function endGame() {
@@ -209,16 +223,18 @@ function reset() {
 
 function startGame() {
   rs.question('Press enter to begin... ');
-  addShips(shipCount);
   buildGrid(gridSize);
-  placeShips();
+  for (let i in shipLengths) {
+    let shipPlaced = placeShip(ships, `ship${i + 1}`, gridSize, shipLengths[i]);
+    // if (!shipPlaced) {
+    //   shipPlaced = placeShip(ships, `ship${i + 1}`, gridSize, shipLengths[i]);
+    // }
+    console.log(shipPlaced);
+  }
   strike();
   endGame();
 }
 
 /******************************************************************/
 
-// startGame();
-
-buildGrid(gridSize);
-console.log(checkVertical('E5', 2));
+startGame();
