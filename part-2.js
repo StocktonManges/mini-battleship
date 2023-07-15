@@ -3,39 +3,29 @@ var cg = require('console-grid');
 
 
 /***************************** GAME SETUP *****************************/
-// placeShip() calls pickCoordinates.
-//    placeShip() arguments: (shipLength)
-
-// pickCoordinates() returns an array that represents the ship.
-
-// placeShip() calls checkCoordinates() (which is a consolidated
-// checkVertical() and checkHorizontal()) which checks if it fits on
-// grid or is overlapping another ship and returns boolean.
-//    true => placeShip() adds the array to the map and the coordinates to the allShipCoordinates array.
-//    false => call pickCoordinates() again with same information (use a while loop and a variable).
 
 const gridSize = 10;
 const rowHeader = ['A','B','C','D','E','F','G','H','I','J'];
-let activeRowHeader = createActiveRowHeaderList(gridSize, rowHeader);
+const activeRowHeader = createActiveRowHeaderList(gridSize, rowHeader);
+const shipLengths = [2, 3, 3, 4, 5];
+
+// Values to reset after each game:
+const ships = new Map();
 let rows = [];
 let columns = [{
   "id": "name",
   "name": ""
 }];
-
-const ships = new Map();
 let allShipCoordinates = [];
-const shipLengths = [2, 3, 3, 4, 5];
-
 let strikeLocations = [];
 
 
-function buildGrid(size = 5) {
+function buildGrid(size) {
   // Verifies the 'size' is between 5 and 10.
   if (size > 10) {
     size = 10;
   } else if (size < 5) {
-    size = 5;
+    size;
   }
   
   // Adds columns to the 'columns' list.
@@ -67,78 +57,73 @@ function buildGrid(size = 5) {
           )
         }
       }
-  
-  // Generates grid in the console.
-  cg({
-    "columns": columns,
-    "rows": rows,
-  });
+      
+      // Generates grid in the console.
+      cg({
+        "columns": columns,
+        "rows": rows,
+      });
 }
 
-function createActiveRowHeaderList(size, array) {
-  let activeRowHeader = array.filter((header) => array.indexOf(header) < size);
+function createActiveRowHeaderList(size, headersArray) {
+  let activeRowHeader = headersArray.filter((header) => headersArray.indexOf(header) < size);
   return activeRowHeader;
 }
 
 // Generates random sequences of adjacent coordinates based on the
 // 'shipLength' argument.
-function pickCoordinates(size = 5, shipLength) {
+function pickCoordinates(size, shipLength) {
   const coordinate1 = Math.floor(Math.random() * size);
   const coordinate2 = Math.floor(Math.random() * size) + 1;
-  const shipHead = `${(rowHeader[coordinate1])}${coordinate2}`;
+  // Choose vertical or horizontal randomly.
   if (Math.floor(Math.random() * 2) === 0) {
-    let checkH = checkHorizontal(shipHead, shipLength);
-    if (typeof checkH === 'object') {
-      return checkH;
-    } else {
-      checkH = checkHorizontal(shipHead, shipLength);
+    const arrHorizontal = [];
+    for (let i = 0; i < shipLength; i++) {
+      arrHorizontal.push(`${rowHeader[coordinate1]}${coordinate2 + i}`);
     }
+    return arrHorizontal;
   } else {
-    let checkV = checkVertical(shipHead, shipLength);
-    if (typeof checkV === 'object') {
-      return checkV;
-    } else {
-      checkV = checkVertical(shipHead, shipLength);
+    const arrVertical = [];
+    for (let i = 0; i < shipLength; i++) {
+      arrVertical.push(`${rowHeader[coordinate1 + i]}${coordinate2}`);
     }
+    return arrVertical;
   }
 }
 
-function checkHorizontal(coordinate, length) {
-  const arr = [];
-  for (let i = 0; i < length; i++) {
-    let potCoordinate = [coordinate[0], Number(coordinate[1]) + i];
-    if (allShipCoordinates.includes(potCoordinate[0] + potCoordinate[1].toString()) || potCoordinate[1] > gridSize) {
-      return false;
+// Checks if each coordinate in the 'shipArray' fits on the grid and if
+// it is overlapping another ship.
+function checkCoordinates(size, shipArray) {
+  let num = null;
+  for (let coordinate of shipArray) {
+    if (coordinate.length === 3) {
+      num = coordinate[1] + coordinate[2];
     } else {
-      arr.push(potCoordinate[0] + potCoordinate[1].toString());
+      num = coordinate[1];
     }
+    if (
+      allShipCoordinates.includes(coordinate)
+      || !activeRowHeader.includes(coordinate[0])
+      || num > size
+      ) {
+        return false;
+      }
   }
-  return arr;
-}
-
-function checkVertical(coordinate, length) {
-  const arr = [];
-  const rowStart = rowHeader.indexOf(coordinate[0]);
-  for (let i = 0; i < length; i++) {
-    const potCoordinate = `${rowHeader[rowStart + i]}${coordinate[1]}`;
-    if (allShipCoordinates.includes(potCoordinate) || !activeRowHeader.includes(potCoordinate[0])) {
-      return false;
-    } else {
-      arr.push(potCoordinate);
-    }
-  }
-  return arr;
+  return true;
 }
 
 // Assigns coordinates to each 'ship' key in the 'ships' Map.
-function placeShip(map, shipNum, size = 5, shipLength) {
-  const shipArray = pickCoordinates(size, shipLength);
-  return shipArray;
-  // // Add the ship to the 'allShipCoordinates' array.
-  // for (let coordinate of shipArray) {
-  //   allShipCoordinates.push(coordinate);
-  // }
-  // map.set(shipNum, shipArray);
+function placeShip(size, lengthsArray, coordinatesArray, map) {
+  for (let i in lengthsArray) {
+    let readyToPlace = false;
+    let shipArray = [];
+    while (!readyToPlace) {
+      shipArray = pickCoordinates(size, lengthsArray[i]);
+      readyToPlace = checkCoordinates(size, shipArray);
+    }
+    coordinatesArray.push(...shipArray);
+    map.set(`ship${Number(i) + 1}`, shipArray);
+  }
 }
 
 
@@ -214,23 +199,16 @@ function reset() {
     "id": "name",
     "name": ""
   }];
-
   ships.clear();
   allShipCoordinates = [];
-
   strikeLocations = [];
 }
 
 function startGame() {
   rs.question('Press enter to begin... ');
   buildGrid(gridSize);
-  for (let i in shipLengths) {
-    let shipPlaced = placeShip(ships, `ship${i + 1}`, gridSize, shipLengths[i]);
-    // if (!shipPlaced) {
-    //   shipPlaced = placeShip(ships, `ship${i + 1}`, gridSize, shipLengths[i]);
-    // }
-    console.log(shipPlaced);
-  }
+  placeShip(gridSize, shipLengths, allShipCoordinates, ships);
+  console.log(allShipCoordinates);
   strike();
   endGame();
 }
