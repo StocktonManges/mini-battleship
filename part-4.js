@@ -4,28 +4,37 @@ var cg = require('console-grid');
 
 /***************************** GAME SETUP *****************************/
 
-const gridSize = 5;
 const rowHeader = ['A','B','C','D','E','F','G','H','I','J'];
-const activeRowHeader = createActiveRowHeaderList(gridSize, rowHeader);
-const shipLengths = [2, 3, 3];
+let gridSize = null;
+let shipLengths = [];
+const gridAndShipSizes = {
+  '100': [2, 3, 3, 4, 5],
+  '25': [2, 3, 4],
+  '9': [2, 3],
+}
 
 // Values to reset after each game:
-const ships = new Map();
 let columns = ['',];
 let rows = [];
-let allShipCoordinates = [];
-let strikeLocations = [];
+const enemyShips = new Map();
+let enemyShipCoordinates = [];
+let playerStrikeLocations = [];
+const playerShips = new Map();
+let playerShipCoordinates = [];
+let enemyStrikeLocations = [];
 
+// Prompts player to pick a grid size from a list of options and then
+// the number of ships is calculated.
+function pickGridSize() {
+  const gridSizeOptions = [9, 25, 100];
+  const index = rs.keyInSelect(gridSizeOptions, 'Choose the grid size you wish to play on: ');
+  gridSize = Math.sqrt(gridSizeOptions[index]);
+  shipLengths = gridAndShipSizes[`${gridSizeOptions[index]}`];
+  return index === -1;
+}
 
-function buildGrid(size) {
-  // Verifies the 'size' is between 5 and 10.
-  if (size > 10) {
-    size = 10;
-  } else if (size < 5) {
-    size;
-  }
-  
-  // Adds columns to the 'columns' list.
+function buildGrid(size, headersArray) {
+  // Adds column headers to the 'columns' list.
   for (let i = 1; i <= size; i++) {
     columns.push(i.toString());
   }
@@ -39,7 +48,7 @@ function buildGrid(size) {
         spaces.push('',);
       }
       rows.push(
-        [`${activeRowHeader[i / 2]}`, ...spaces]
+        [`${headersArray[i / 2]}`, ...spaces]
       );
     } else {
       rows.push({ innerBorder: true });
@@ -63,19 +72,19 @@ function createActiveRowHeaderList(size, headersArray) {
 // Generates random sequences of adjacent coordinates based on the
 // 'shipLength' argument.
 function pickCoordinates(size, shipLength) {
-  const coordinate1 = Math.floor(Math.random() * size);
-  const coordinate2 = Math.floor(Math.random() * size) + 1;
+  const num1 = Math.floor(Math.random() * size);
+  const num2 = Math.floor(Math.random() * size) + 1;
   // Choose vertical or horizontal randomly.
   if (Math.floor(Math.random() * 2) === 0) {
     const arrHorizontal = [];
     for (let i = 0; i < shipLength; i++) {
-      arrHorizontal.push(`${rowHeader[coordinate1]}${coordinate2 + i}`);
+      arrHorizontal.push(`${rowHeader[num1]}${num2 + i}`);
     }
     return arrHorizontal;
   } else {
     const arrVertical = [];
     for (let i = 0; i < shipLength; i++) {
-      arrVertical.push(`${rowHeader[coordinate1 + i]}${coordinate2}`);
+      arrVertical.push(`${rowHeader[num1 + i]}${num2}`);
     }
     return arrVertical;
   }
@@ -83,7 +92,7 @@ function pickCoordinates(size, shipLength) {
 
 // Checks if each coordinate in the 'shipArray' fits on the grid and if
 // it is overlapping another ship.
-function checkCoordinates(size, shipArray) {
+function checkCoordinates(size, shipArray, shipCoordinatesArray, headersArray) {
   let num = null;
   for (let coordinate of shipArray) {
     if (coordinate.length === 3) {
@@ -92,8 +101,8 @@ function checkCoordinates(size, shipArray) {
       num = coordinate[1];
     }
     if (
-      allShipCoordinates.includes(coordinate)
-      || !activeRowHeader.includes(coordinate[0])
+      shipCoordinatesArray.includes(coordinate)
+      || !headersArray.includes(coordinate[0])
       || num > size
       ) {
         return false;
@@ -103,96 +112,143 @@ function checkCoordinates(size, shipArray) {
 }
 
 // Assigns coordinates to each 'ship' key in the 'ships' Map.
-function placeShip(size, lengthsArray, coordinatesArray, map) {
+function placeShips(size, lengthsArray, shipCoordinatesArray, map, headersArray) {
   for (let i in lengthsArray) {
     let readyToPlace = false;
     let shipArray = [];
     while (!readyToPlace) {
       shipArray = pickCoordinates(size, lengthsArray[i]);
-      readyToPlace = checkCoordinates(size, shipArray);
+      readyToPlace = checkCoordinates(size, shipArray, shipCoordinatesArray, headersArray);
     }
-    coordinatesArray.push(...shipArray);
+    shipCoordinatesArray.push(...shipArray);
     map.set(`ship${Number(i) + 1}`, shipArray);
   }
 }
 
 /******************************************************************/
 
-// COMPUTER NOTES:
-
-// Global variables:
-// ships map
-// allShipCoordinates
-// strikeLocations
-
-// Place player ships.
-// 
 
 /***************************** GAME PLAY *****************************/
 
 // Asks the player to guess locations until all ships are deleted from
 // the 'ships' Map.
-function strike() {
+function playerStrike(headersArray) {
+  console.log(`
+  
+          PLAYER TURN
+*******************************`)
   logGrid();
-  let strikeLocation = rs.question(`
-Enter a location to strike. `).toUpperCase();
-  if (verifyStrikeLocation(strikeLocation)) {
-    if (strikeLocations.includes(strikeLocation)) {
+  let strikeLocation = rs.question(`Enter a location to strike. `).toUpperCase();
+  if (verifyStrikeLocation(strikeLocation, headersArray)) {
+    if (playerStrikeLocations.includes(strikeLocation)) {
       console.log('You have already picked this location. Miss!');
+      return true;
     } else {
       let i = 0;
-      for (let [shipNumber, shipArray] of ships) {
+      for (let [shipNumber, shipArray] of enemyShips) {
         for (let coordinateIndex in shipArray) {
           if (strikeLocation === shipArray[coordinateIndex]) {
             shipArray.splice(coordinateIndex, 1);
-            updateGrid(strikeLocation, true);
+            updateGrid(strikeLocation, true, headersArray);
             if (shipArray.length === 0) {
-              ships.delete(shipNumber);
-              console.log(`Hit! You have sunk a battleship. Remaining ships: ${ships.size}.`);
-              strikeLocations.push(strikeLocation);
-              return;
+              enemyShips.delete(shipNumber);
+              console.log(`Hit! You have sunk a battleship. Remaining enemy battleships: ${enemyShips.size}.`);
+              playerStrikeLocations.push(strikeLocation);
+              return true;
             } else {
-              console.log(`Hit! Remaining ships: ${ships.size}.`);
-              strikeLocations.push(strikeLocation);
-              return;
+              console.log(`Hit! Remaining enemy battleships: ${enemyShips.size}.`);
+              playerStrikeLocations.push(strikeLocation);
+              return true;
             }
           }
         }
         i++;
-        if (i === ships.size) {
-          strikeLocations.push(strikeLocation);
-          console.log(`Miss! Remaining ships: ${ships.size}.`);
-          updateGrid(strikeLocation, false);
-          return;
+        if (i === enemyShips.size) {
+          playerStrikeLocations.push(strikeLocation);
+          console.log(`Miss! Remaining enemy battleships: ${enemyShips.size}.`);
+          updateGrid(strikeLocation, false, headersArray);
+          return true;
         }
       }
     }    
   } else {
     console.log('That is not a valid location.');
+    return false;
+  }
+}
+
+function enemyStrike(size, headersArray) {
+  console.log(`
+
+          ENEMY TURN
+*******************************`);
+  let enemyFired = false;
+  let strikeLocation = '';
+  while (!enemyFired) {
+    let num1 = Math.floor(Math.random() * size);
+    let num2 = Math.floor(Math.random() * size) + 1;
+    strikeLocation = `${headersArray[num1]}${num2}`;
+    if (!enemyStrikeLocations.includes(strikeLocation)) {
+      enemyStrikeLocations.push(strikeLocation);
+      console.log(`The enemy has fired at ${strikeLocation}.`)
+      enemyFired = true;
+    }
+  }
+  let i = 0;
+  for (let [shipNumber, shipArray] of playerShips) {
+    for (let coordinateIndex in shipArray) {
+      if (strikeLocation === shipArray[coordinateIndex]) {
+        shipArray.splice(coordinateIndex, 1);
+        if (shipArray.length === 0) {
+          playerShips.delete(shipNumber);
+          console.log(`Hit! The enemy has sunk a battleship. Your remaining battleships: ${playerShips.size}.`);
+          logShips(playerShips);
+          return;
+        } else {
+          console.log(`Hit! Your remaining battleships: ${playerShips.size}.`);
+          logShips(playerShips);
+          return;
+        }
+      }
+    }
+    i++;
+    if (i === playerShips.size) {
+      console.log(`Miss! Your remaining battleships: ${playerShips.size}.`);
+      logShips(playerShips);
+      return;
+    }
+  }
+}
+
+function logShips(shipsMap) {
+  console.log(`
+Your remaining ship coordinates:`);
+  for (let [shipNumber, shipArray] of shipsMap) {
+    console.log(`${shipNumber}: ${shipArray}`);
   }
 }
 
 // Split the 'strikeLocation' into an array, then check the letter and
 // number separately to see if it falls within the established grid.
-function verifyStrikeLocation(coordinate) {
+function verifyStrikeLocation(coordinate, headersArray) {
   let arr = [...coordinate];
   // Concatenates '1' and '0' if 'strikeLocation' is in column 10.
   if (arr[1] + arr[2] === '10') {
     arr = [arr[0], '10'];
   }
   return (
-    activeRowHeader.includes(arr[0]) 
+    headersArray.includes(arr[0]) 
     && arr[1] <= gridSize
     && arr[1] > 0
-    && activeRowHeader.indexOf(arr[0]) < gridSize 
-    && activeRowHeader.indexOf(arr[0]) >= 0 
+    && headersArray.indexOf(arr[0]) < gridSize 
+    && headersArray.indexOf(arr[0]) >= 0 
     && arr.length === 2
     );
 }
 
 // Takes a coordinate and a boolean as arguments and adds an 'X' or 'O'
 // depending on the boolean argument.
-function updateGrid(coordinate, boolean) {
+function updateGrid(coordinate, boolean, headersArray) {
   let arr = [...coordinate];
   // Concatenates '1' and '0' if 'strikeLocation' is in column 10.
   if (arr[1] + arr[2] === '10') {
@@ -201,20 +257,30 @@ function updateGrid(coordinate, boolean) {
     arr = [arr[0], Number(arr[1])];
   }
   if (boolean) {
-    rows[activeRowHeader.indexOf(arr[0]) * 2][arr[1]] = 'X';
+    rows[headersArray.indexOf(arr[0]) * 2][arr[1]] = 'X';
   } else {
-    rows[activeRowHeader.indexOf(arr[0]) * 2][arr[1]] = 'O';
+    rows[headersArray.indexOf(arr[0]) * 2][arr[1]] = 'O';
   }
 }
 
 function endGame() {
-  const playAgain = rs.keyInYN('You have destroyed all battleships. Would you like to play again?');
+  if (enemyShips.size === 0) {
+    logGrid();
+    console.log(`
+You've successfully destroyed all enemy battleships! Your remaining battleships: ${playerShips.size}.`)
+  } else {
+    console.log(`
+The enemy has destroyed all of your battleships!`)
+  }
+
+  const playAgain = rs.keyInYN(`
+Would you like to play again?`);
   if (playAgain) {
     startGame();
   } else {
     console.log(`
     
-                    Thanks for playing!
+                  Thanks for playing!
     `);
   }
 }
@@ -222,21 +288,42 @@ function endGame() {
 function reset() {
   rows = [];
   columns = ['',];
-  ships.clear();
-  allShipCoordinates = [];
-  strikeLocations = [];
+  gridSize = null;
+  shipLengths = [];
+  enemyShips.clear();
+  enemyShipCoordinates = [];
+  playerStrikeLocations = [];
+  playerShips.clear();
+  playerShipCoordinates = [];
+  enemyStrikeLocations = [];
 }
 
 function startGame() {
   reset();
-  rs.question('Press enter to begin... ');
-  buildGrid(gridSize);
-  placeShip(gridSize, shipLengths, allShipCoordinates, ships);
-  while (ships.size > 0) {
-    strike();
+  let endedEarly = pickGridSize();
+  if (endedEarly) {
+    console.log(`
+Thanks for thinking about playing... I guess... 
+=(`);
+  } else {
+    let activeRowHeader = createActiveRowHeaderList(gridSize, rowHeader);
+    rs.question('Press enter to begin... ');
+    buildGrid(gridSize, activeRowHeader);
+    placeShips(gridSize, shipLengths, enemyShipCoordinates, enemyShips, activeRowHeader);
+    placeShips(gridSize, shipLengths, playerShipCoordinates, playerShips, activeRowHeader);
+    while (enemyShips.size > 0 && playerShips.size > 0) {
+      let playerFired = playerStrike(activeRowHeader);
+      // Allows the player to fire again if an invalid coordinate was
+      // entered.
+      while (!playerFired) {
+        playerFired = playerStrike(activeRowHeader);
+      }
+      if (enemyShips.size != 0) {
+        enemyStrike(gridSize, activeRowHeader);
+      }
+    }
+    endGame();
   }
-  logGrid();
-  endGame();
 }
 
 /******************************************************************/
