@@ -73,22 +73,21 @@ function createActiveRowHeaderList(size, headersArray) {
 // Generates random sequences of adjacent coordinates based on the
 // 'shipLength' argument.
 function pickCoordinates(size, shipLength) {
-  const coordinate1 = Math.floor(Math.random() * size);
-  const coordinate2 = Math.floor(Math.random() * size) + 1;
+  // This picks a random coordinate pair. The '+ item' at the end will
+  // add '0' the first time around and '1' the second time around so
+  // that the column number is accurate while also getting the row
+  // header index for the coordinate pair.
+  const [coordinate1, coordinate2] = [0, 1].map((item) => Math.floor(Math.random() * size) + item);
   // Choose vertical or horizontal randomly.
-  if (Math.floor(Math.random() * 2) === 0) {
-    const arrHorizontal = [];
-    for (let i = 0; i < shipLength; i++) {
-      arrHorizontal.push(`${rowHeader[coordinate1]}${coordinate2 + i}`);
-    }
-    return arrHorizontal;
-  } else {
-    const arrVertical = [];
-    for (let i = 0; i < shipLength; i++) {
-      arrVertical.push(`${rowHeader[coordinate1 + i]}${coordinate2}`);
-    }
-    return arrVertical;
+  /* CHANGED */
+  const arr = [];
+  for (let i = 0; i < shipLength; i++) {
+    const tail = Math.floor(Math.random() * 2) === 0
+      ? `${rowHeader[coordinate1]}${coordinate2 + i}`
+      : `${rowHeader[coordinate1 + i]}${coordinate2}`
+    arr.push(tail);
   }
+  return arr;
 }
 
 // Checks if each coordinate in the 'shipArray' fits on the grid and if
@@ -96,11 +95,8 @@ function pickCoordinates(size, shipLength) {
 function checkCoordinates(size, shipArray) {
   let num = null;
   for (let coordinate of shipArray) {
-    if (coordinate.length === 3) {
-      num = coordinate[1] + coordinate[2];
-    } else {
-      num = coordinate[1];
-    }
+    /* CHANGED */
+    num = coordinate.length === 3 ? coordinate[1] + coordinate[2] : coordinate[1]
     if (
       allShipCoordinates.includes(coordinate)
       || !activeRowHeader.includes(coordinate[0])
@@ -151,12 +147,10 @@ Enter a location to strike. `).toUpperCase();
               ships.delete(shipNumber);
               console.log(`Hit! You have sunk a battleship. Remaining ships: ${ships.size}.`);
               strikeLocations.push(strikeLocation);
-              console.log(ships);
               return;
             } else {
               console.log(`Hit! Remaining ships: ${ships.size}.`);
               strikeLocations.push(strikeLocation);
-              console.log(ships);
               return;
             }
           }
@@ -164,7 +158,6 @@ Enter a location to strike. `).toUpperCase();
         i++;
         if (i === ships.size) {
           strikeLocations.push(strikeLocation);
-          console.log(ships);
           console.log(`Miss! Remaining ships: ${ships.size}.`);
           return;
         }

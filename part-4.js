@@ -4,7 +4,8 @@ var cg = require('console-grid');
 
 /***************************** GAME SETUP *****************************/
 
-const rowHeader = ['A','B','C','D','E','F','G','H','I','J'];
+/* CHANGED */
+const rowHeader = 'ABCDEFGHIJ'.split('');
 let gridSize = null;
 let shipLengths = [];
 const gridAndShipSizes = {
